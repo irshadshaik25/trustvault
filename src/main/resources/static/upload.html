@@ -1,0 +1,189 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustVault - My Documents</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 35px auto;
+            padding: 0 16px;
+        }
+        form, .document {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        button {
+            padding: 8px 14px;
+            margin: 4px;
+            cursor: pointer;
+        }
+        .muted { color: #666; }
+        #result { white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h2>TrustVault - My Documents</h2>
+
+    <form id="uploadForm">
+        <label for="file">Select a document</label><br><br>
+        <input type="file" id="file" name="file" required>
+        <button type="submit">Upload Document</button>
+    </form>
+
+    <p id="result" role="status"></p>
+
+    <h3>My Documents</h3>
+    <button type="button" id="refreshButton">Refresh Documents</button>
+    <div id="documents">Loading documents...</div>
+
+    <script>
+        const result = document.getElementById("result");
+        const documentsContainer = document.getElementById("documents");
+
+        async function getCsrf() {
+            const response = await fetch("/api/security/csrf", {
+                credentials: "same-origin"
+            });
+
+            if (!response.ok) {
+                throw new Error("Please log in, then refresh this page.");
+            }
+
+            return response.json();
+        }
+
+        async function loadDocuments() {
+            documentsContainer.textContent = "Loading documents...";
+
+            try {
+                const response = await fetch("/api/documents", {
+                    credentials: "same-origin"
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    documentsContainer.textContent =
+                        "Please log in again to view your documents.";
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error("Could not load documents (HTTP " +
+                        response.status + ").");
+                }
+
+                const documents = await response.json();
+                documentsContainer.replaceChildren();
+
+                if (!documents.length) {
+                    documentsContainer.textContent = "No documents found.";
+                    return;
+                }
+
+                for (const doc of documents) {
+                    const card = document.createElement("section");
+                    card.className = "document";
+
+                    const name = document.createElement("strong");
+                    name.textContent = doc.fileName || "Unnamed document";
+
+                    const details = document.createElement("p");
+                    details.className = "muted";
+                    details.textContent =
+                        "ID: " + doc.id +
+                        " | Type: " + (doc.contentType || "Unknown") +
+                        " | Size: " + (doc.fileSize ?? "Unknown") + " bytes";
+
+                    const download = document.createElement("button");
+                    download.type = "button";
+                    download.textContent = "Download";
+                    download.addEventListener("click", () => downloadDocument(doc));
+
+                    card.append(name, details, download);
+                    documentsContainer.append(card);
+                }
+            } catch (error) {
+                documentsContainer.textContent = error.message;
+            }
+        }
+
+        async function downloadDocument(doc) {
+            result.textContent = "Preparing download...";
+
+            try {
+                const response = await fetch(
+                    "/api/documents/" + encodeURIComponent(doc.id) + "/download",
+                    { credentials: "same-origin" }
+                );
+
+                if (!response.ok) {
+                    const message = await response.text();
+                    throw new Error("Download failed (HTTP " +
+                        response.status + "): " + message);
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = doc.fileName || "document";
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+
+                result.textContent = "Download started: " + doc.fileName;
+            } catch (error) {
+                result.textContent = error.message;
+            }
+        }
+
+        document.getElementById("uploadForm").addEventListener(
+            "submit", async event => {
+                event.preventDefault();
+                result.textContent = "";
+
+                const file = document.getElementById("file").files[0];
+                if (!file) return;
+
+                try {
+                    const csrf = await getCsrf();
+                    const formData = new FormData();
+                    formData.append("file", file);
+
+                    const response = await fetch("/api/documents", {
+                        method: "POST",
+                        credentials: "same-origin",
+                        headers: { [csrf.headerName]: csrf.token },
+                        body: formData
+                    });
+
+                    const text = await response.text();
+
+                    if (!response.ok) {
+                        throw new Error("Upload failed (HTTP " +
+                            response.status + "): " + text);
+                    }
+
+                    result.textContent = "Upload successful: " + text;
+                    event.target.reset();
+                    await loadDocuments();
+                } catch (error) {
+                    result.textContent = error.message;
+                }
+            }
+        );
+
+        document.getElementById("refreshButton").addEventListener(
+            "click", loadDocuments
+        );
+
+        loadDocuments();
+    </script>
+</body>
+</html>

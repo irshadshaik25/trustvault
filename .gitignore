@@ -1,0 +1,66 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+# Local secrets and session data
+.env
+.env.*
+!.env.example
+* cookies*.txt
+admin-cookies.txt
+login-headers.tmp
+
+# Local test artifacts
+*-test.txt
+downloaded-document.txt
+downloaded-replacement.txt
+download-headers.txt
+login-page.html
+login.html
+login2.html
+register.json
+share-request.json
+share-error.json
+delete-test.txt
+pom.xml.backup
+
+
+ cookies*.txt
+cookies*.txt
+
+# Editor backup files
+*.bak
+
+# Local debugging logs and test data
+startup-error.txt
+test-document.txt
