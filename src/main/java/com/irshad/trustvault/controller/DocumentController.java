@@ -1,6 +1,7 @@
 
 package com.irshad.trustvault.controller;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.irshad.trustvault.dto.DocumentResponse;
 import com.irshad.trustvault.entity.Document;
 import com.irshad.trustvault.entity.DocumentPermission;
@@ -28,7 +29,8 @@ import java.util.stream.Stream;
 @RestController
 @RequestMapping("/api/documents")
 public class DocumentController {
-
+private static final Logger logger =
+        LoggerFactory.getLogger(DocumentController.class);
     private final DocumentService documentService;
     private final UserService userService;
     private final DocumentPermissionService permissionService;
@@ -119,10 +121,12 @@ public class DocumentController {
                     .body(exception.getMessage());
 
         } catch (IOException exception) {
-            return ResponseEntity.status(
-                    HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("The document could not be stored.");
-        }
+    logger.error("Document upload failed while storing the file.", exception);
+
+    return ResponseEntity.status(
+            HttpStatus.INTERNAL_SERVER_ERROR)
+            .body("The document could not be stored.");
+}
     }
 
     @PutMapping(
